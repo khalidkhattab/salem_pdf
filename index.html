@@ -1,0 +1,601 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>سجل الطلاب المفصولين</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<style>
+:root{
+  --bg:#f4f6f9; --card:#ffffff; --ink:#1d2433; --muted:#667085; --line:#e3e7ee;
+  --brand:#0f5f73; --brand-2:#e6f2f5; --accent:#d9480f; --danger:#c92a2a; --ok:#2b8a3e;
+  --radius:12px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#11151c; --card:#1a2029; --ink:#e7ebf1; --muted:#9aa4b2; --line:#2b3340;
+    --brand:#5cc3d9; --brand-2:#183039; --accent:#ff8a50; --danger:#ff6b6b; --ok:#69db7c;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#11151c; --card:#1a2029; --ink:#e7ebf1; --muted:#9aa4b2; --line:#2b3340;
+  --brand:#5cc3d9; --brand-2:#183039; --accent:#ff8a50; --danger:#ff6b6b; --ok:#69db7c;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Tajawal",system-ui,sans-serif;font-size:15px;line-height:1.5}
+.wrap{max-width:1200px;margin:0 auto;padding:20px 16px 60px}
+header.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+header.top h1{margin:0;font-size:24px;font-weight:800}
+header.top p{margin:2px 0 0;color:var(--muted);font-size:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-bottom:16px}
+.drop{border:2px dashed var(--line);border-radius:var(--radius);padding:22px;text-align:center;cursor:pointer;transition:.15s}
+.drop:hover,.drop.over{border-color:var(--brand);background:var(--brand-2)}
+.drop strong{display:block;font-size:17px;margin-bottom:4px}
+.drop small{color:var(--muted)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.btn{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:8px 14px;border-radius:9px;cursor:pointer;font-weight:500;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{border-color:var(--brand)}
+.btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+:root[data-theme="dark"] .btn.primary{color:#0b1a1f}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .btn.primary{color:#0b1a1f}}
+.btn.danger{color:var(--danger)}
+.btn.wa{background:#25d366;border-color:#25d366;color:#fff}
+.btn:disabled{opacity:.6;cursor:wait}
+.btn.small{padding:4px 9px;font-size:13px}
+.filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+.filters label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted);font-weight:500}
+input,select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%}
+input:focus,select:focus{outline:2px solid var(--brand);outline-offset:-1px}
+.presets{margin-top:12px}
+.chip{font:inherit;font-size:13px;border:1px solid var(--line);background:transparent;color:var(--ink);padding:4px 12px;border-radius:999px;cursor:pointer}
+.chip.on{background:var(--brand);border-color:var(--brand);color:#fff}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:12px 16px}
+.stat b{display:block;font-size:26px;font-weight:800;color:var(--brand)}
+.stat span{color:var(--muted);font-size:13px}
+.tabs{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;justify-content:space-between;align-items:center}
+.tab{font:inherit;border:none;background:transparent;color:var(--muted);padding:8px 12px;border-bottom:3px solid transparent;cursor:pointer;font-weight:700}
+.tab.on{color:var(--brand);border-color:var(--brand)}
+.tablebox{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{border-bottom:1px solid var(--line);padding:9px 10px;text-align:right;white-space:nowrap}
+th{background:var(--brand-2);font-weight:700;position:sticky;top:0;cursor:pointer;user-select:none}
+th .arr{font-size:11px;color:var(--muted)}
+tbody tr:hover{background:var(--brand-2)}
+td.name{white-space:normal;min-width:180px;font-weight:500}
+.badge{display:inline-block;min-width:26px;text-align:center;padding:1px 8px;border-radius:999px;background:var(--brand-2);color:var(--brand);font-weight:700}
+.badge.hot{background:#ffe8dc;color:#c2410c}
+.empty{text-align:center;color:var(--muted);padding:40px 10px}
+.msg{margin-top:10px;font-size:14px}
+.msg.err{color:var(--danger)} .msg.ok{color:var(--ok)}
+.muted{color:var(--muted)}
+.del{border:none;background:none;color:var(--muted);cursor:pointer;font-size:16px}
+.del:hover{color:var(--danger)}
+.loader{display:none;margin-top:10px}
+.loader.on{display:block}
+/* print & PDF sheet */
+#sheet{display:none}
+.sheet{font-family:"Tajawal",sans-serif;color:#000;background:#fff;direction:rtl;padding:10px}
+.sheet h2{text-align:center;margin:0 0 4px;font-size:20px}
+.sheet .sub{text-align:center;font-size:13px;margin-bottom:10px;color:#333}
+.sheet table{font-size:13px;border:1px solid #000}
+.sheet th,.sheet td{border:1px solid #000;padding:6px 8px;color:#000;background:#fff;white-space:normal;text-align:center}
+.sheet th{background:#e9eef2 !important;position:static}
+.sheet td.n{text-align:right}
+.sheet tr{page-break-inside:avoid}
+.sheet .foot{margin-top:8px;font-size:12px;text-align:left;color:#333}
+@media print{
+  body{background:#fff}
+  .wrap{display:none}
+  #sheet{display:block}
+  @page{size:A4;margin:12mm}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>سجل الطلاب المفصولين</h1>
+      <p>ارفع ملف PDF للكشف، ثم ابحث وصفِّ البيانات وصدّرها أو اطبعها</p>
+    </div>
+    <div class="row">
+      <button class="btn" id="themeBtn" title="تبديل المظهر">◐ المظهر</button>
+    </div>
+  </header>
+
+  <section class="card">
+    <div class="drop" id="drop">
+      <strong>📄 اسحب ملف PDF هنا أو اضغط للاختيار</strong>
+      <small>يمكن رفع أكثر من ملف — الأعمدة المتوقعة: الصف، الفصل، اسم الطالب، يوم الفصل، تاريخ الفصل</small>
+      <input type="file" id="file" accept="application/pdf" multiple hidden>
+    </div>
+    <div class="row" style="margin-top:12px;justify-content:space-between">
+      <label class="row" style="gap:6px;cursor:pointer"><input type="checkbox" id="merge" checked style="width:auto"> دمج مع البيانات الحالية (بدون تكرار)</label>
+      <div class="row">
+        <button class="btn" id="sampleBtn">تحميل بيانات تجريبية</button>
+        <button class="btn danger" id="clearBtn">مسح كل البيانات</button>
+      </div>
+    </div>
+    <div class="loader" id="loader">⏳ جارٍ قراءة الملف...</div>
+    <div class="msg" id="msg"></div>
+  </section>
+
+  <section class="card">
+    <div class="filters">
+      <label>بحث بالاسم
+        <input type="search" id="q" placeholder="اكتب جزءًا من الاسم...">
+      </label>
+      <label>الصف
+        <select id="fGrade"><option value="">الكل</option></select>
+      </label>
+      <label>الفصل
+        <select id="fClass"><option value="">الكل</option></select>
+      </label>
+      <label>اليوم
+        <select id="fDay"><option value="">الكل</option></select>
+      </label>
+      <label>تاريخ محدد
+        <input type="date" id="fDate">
+      </label>
+      <label>الفترة من
+        <input type="date" id="fFrom">
+      </label>
+      <label>الفترة إلى
+        <input type="date" id="fTo">
+      </label>
+    </div>
+    <div class="row presets">
+      <span class="muted" style="font-size:13px">فترات سريعة:</span>
+      <button class="chip" data-p="today">اليوم</button>
+      <button class="chip" data-p="week">آخر 7 أيام</button>
+      <button class="chip" data-p="month">هذا الشهر</button>
+      <button class="chip" data-p="lastmonth">الشهر الماضي</button>
+      <button class="chip" data-p="all">كل الفترات</button>
+      <button class="btn small" id="resetBtn" style="margin-inline-start:auto">إعادة ضبط الفلاتر</button>
+    </div>
+  </section>
+
+  <section class="stats">
+    <div class="stat"><b id="sRows">0</b><span>عدد حالات الفصل</span></div>
+    <div class="stat"><b id="sStudents">0</b><span>عدد الطلاب</span></div>
+    <div class="stat"><b id="sDays">0</b><span>عدد الأيام</span></div>
+    <div class="stat"><b id="sTop">—</b><span id="sTopLbl">الأكثر تكرارًا</span></div>
+  </section>
+
+  <section class="card">
+    <div class="tabs">
+      <div>
+        <button class="tab on" data-v="list">كشف الحالات</button>
+        <button class="tab" data-v="students">ملخص حسب الطالب</button>
+      </div>
+      <div class="row">
+        <button class="btn primary" id="pdfBtn">⬇ تصدير PDF</button>
+        <button class="btn" id="imgBtn">🖼 تصدير صورة</button>
+        <button class="btn wa" id="waBtn">🟢 مشاركة واتساب</button>
+        <button class="btn" id="printBtn">🖨 طباعة</button>
+      </div>
+    </div>
+    <div class="tablebox"><table id="tbl"></table></div>
+    <div class="empty" id="empty">لا توجد بيانات بعد — ارفع ملف PDF أو حمّل البيانات التجريبية.</div>
+  </section>
+</div>
+
+<div id="sheet"></div>
+
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+const DAYS = ["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"];
+const STORE = "dismissed_students_v1";
+const $ = id => document.getElementById(id);
+
+let data = [];           // {id, grade, cls, name, day, date}
+let view = "list";
+let sort = {key:"date", dir:-1};
+
+/* ---------- helpers ---------- */
+const toLatinDigits = s => s.replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d)).replace(/[۰-۹]/g, d => "۰۱۲۳۴۵۶۷۸۹".indexOf(d));
+const normAr = s => (s||"").normalize("NFKC").replace(/[ً-ْـ]/g,"").replace(/[أإآ]/g,"ا").replace(/ى/g,"ي").replace(/ة/g,"ه").replace(/\s+/g," ").trim();
+const clean = s => toLatinDigits((s||"").normalize("NFKC")).replace(/ی/g,"ي").replace(/ک/g,"ك").replace(/[‎‏‪-‮]/g,"").replace(/\s+/g," ").trim();
+const dayOf = iso => { const [y,m,d] = iso.split("-").map(Number); return DAYS[new Date(y,m-1,d).getDay()]; };
+const isoLocal = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+const fmtDate = iso => iso;
+const esc = s => String(s??"").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const reverseStr = s => [...s].reverse().join("");
+
+function canonDay(txt){
+  const n = normAr(txt);
+  for (const d of DAYS){ if (n.includes(normAr(d))) return d; }
+  return null;
+}
+function parseDate(txt){
+  const t = toLatinDigits(txt);
+  let m = t.match(/(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})/);
+  if (m) return `${m[1]}-${m[2].padStart(2,"0")}-${m[3].padStart(2,"0")}`;
+  m = t.match(/(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{4})/);
+  if (m) return `${m[3]}-${m[2].padStart(2,"0")}-${m[1].padStart(2,"0")}`;
+  // reversed visual order e.g. "03-11-2026" handled above; "2026-11-03" reversed chars "30-11-6202"
+  return null;
+}
+const keyOf = r => normAr(r.name)+"|"+r.date+"|"+r.grade+"|"+r.cls;
+
+/* ---------- storage ---------- */
+function save(){ try{ localStorage.setItem(STORE, JSON.stringify(data)); }catch(e){} }
+function load(){ try{ const v = JSON.parse(localStorage.getItem(STORE)||"[]"); if (Array.isArray(v)) data = v; }catch(e){} }
+
+/* ---------- PDF parsing ---------- */
+async function parsePdf(file){
+  const buf = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({data:buf}).promise;
+  const rows = [];
+  let allItems = 0;
+  for (let p=1; p<=pdf.numPages; p++){
+    const page = await pdf.getPage(p);
+    const tc = await page.getTextContent();
+    const items = tc.items.filter(it => it.str && it.str.trim()).map(it => ({
+      s: it.str, x: it.transform[4], y: it.transform[5], w: it.width || 0, h: Math.abs(it.transform[3]) || 10
+    }));
+    allItems += items.length;
+    // group into lines by y
+    items.sort((a,b)=> b.y - a.y);
+    const lines = [];
+    for (const it of items){
+      const ln = lines.find(l => Math.abs(l.y - it.y) <= Math.max(3, it.h*0.45));
+      if (ln) ln.items.push(it); else lines.push({y:it.y, items:[it]});
+    }
+    for (const ln of lines){ const r = parseLine(ln.items); if (r) rows.push(r); }
+  }
+  if (!allItems) throw new Error("scan");
+  return rows;
+}
+
+// Merge adjacent text runs (in RTL reading order) into cells, splitting on visible gaps
+function toCells(items){
+  const sorted = [...items].sort((a,b)=> (b.x + b.w) - (a.x + a.w));
+  const cells = [];
+  for (const it of sorted){
+    const prev = cells[cells.length-1];
+    if (prev){
+      const gap = prev.x - (it.x + it.w);   // distance between left edge of prev and right edge of current
+      if (gap < it.h * 0.9){               // same cell
+        prev.parts.push({s:it.s, gap});
+        prev.x = Math.min(prev.x, it.x);
+        continue;
+      }
+    }
+    cells.push({x:it.x, right:it.x+it.w, h:it.h, parts:[{s:it.s, gap:0}]});
+  }
+  return cells.map(c => ({
+    x:c.x, right:c.right,
+    text: clean(c.parts.map((p,i)=> (i && p.gap > c.h*0.15 ? " " : "") + p.s).join(""))
+  }));
+}
+
+function fixOrder(t){
+  // Some PDFs store Arabic in visual (reversed) order. Detect by checking known words.
+  const known = ["عبد","محمد","الله","سعد","خالد","فهد","احمد","ال"];
+  const n = normAr(t), r = normAr(reverseStr(t));
+  const sn = known.filter(k => n.includes(k)).length, sr = known.filter(k => r.includes(k)).length;
+  return sr > sn ? reverseStr(t) : t;
+}
+
+function parseLine(items){
+  const cells = toCells(items);
+  const full = cells.map(c=>c.text).join(" ");
+  // date
+  let date = null, dateIdx = -1;
+  cells.forEach((c,i)=>{ if (!date){ const d = parseDate(c.text) || parseDate(reverseStr(c.text)); if (d){ date = d; dateIdx = i; } } });
+  if (!date){ date = parseDate(full); }
+  if (!date) return null;
+  // day
+  let day = null, dayIdx = -1;
+  cells.forEach((c,i)=>{ if (i===dateIdx || day) return; const d = canonDay(c.text) || canonDay(reverseStr(c.text)); if (d && c.text.replace(/\s/g,"").length <= 9){ day = d; dayIdx = i; } });
+  // numbers on the right edge: grade then class
+  const rest = cells.map((c,i)=>({...c,i})).filter(c => c.i!==dateIdx && c.i!==dayIdx);
+  let grade = "", cls = "";
+  const nums = [];
+  let k = 0;
+  while (k < rest.length && nums.length < 2 && /^\d{1,2}(\s*\/?\s*\d{1,2})?$/.test(rest[k].text)){ nums.push(rest[k].text); k++; }
+  // a single cell may contain both "10 2"
+  if (nums.length === 1 && /\s/.test(nums[0])){ const sp = nums[0].split(/\s+/); grade = sp[0]; cls = sp[1]; }
+  else { grade = nums[0] || ""; cls = nums[1] || ""; }
+  const nameCells = rest.slice(k).filter(c => !/^\s*\d{1,2}\s*$/.test(c.text) || rest.slice(k).length === 1);
+  let name = nameCells.map(c => c.text).join(" ");
+  // remove a day word or date that got merged into the name cell
+  for (const d of DAYS){
+    const re = new RegExp("\\s*" + d.replace("الأ","ال[أاإ]").replace("الا","ال[اإأ]") + "\\s*");
+    if (re.test(name)){ if (!day) day = d; name = name.replace(re, " "); }
+  }
+  name = name.replace(/\d{4}[-\/.]\d{1,2}[-\/.]\d{1,2}|\d{1,2}[-\/.]\d{1,2}[-\/.]\d{4}/g, " ");
+  name = fixOrder(name.trim()).replace(/\s\.(\d)/g," $1").replace(/^[.\s]+|[.\s]+$/g,"").replace(/\s+/g," ");
+  if (!name || /اسم\s*الطالب/.test(normAr(name))) return null;
+  if (!day) day = dayOf(date);
+  return {grade, cls, name, day, date};
+}
+
+/* ---------- upload ---------- */
+async function handleFiles(files){
+  const list = [...files].filter(f => /pdf$/i.test(f.type) || /\.pdf$/i.test(f.name));
+  if (!list.length){ setMsg("الرجاء اختيار ملف بصيغة PDF.", "err"); return; }
+  $("loader").classList.add("on"); setMsg("");
+  let added = 0, total = 0, scanned = [];
+  if (!$("merge").checked) data = [];
+  const seen = new Set(data.map(keyOf));
+  for (const f of list){
+    try{
+      const rows = await parsePdf(f);
+      total += rows.length;
+      for (const r of rows){ const k = keyOf(r); if (seen.has(k)) continue; seen.add(k); data.push({id:crypto.randomUUID?.() || String(Math.random()), ...r}); added++; }
+    }catch(e){
+      if (e.message === "scan") scanned.push(f.name); else { console.error(e); setMsg("تعذّرت قراءة الملف: " + f.name, "err"); }
+    }
+  }
+  $("loader").classList.remove("on");
+  save(); refreshOptions(); render();
+  if (scanned.length) setMsg(`الملف "${scanned.join("، ")}" يبدو صورة ممسوحة ضوئيًا (لا يحتوي نصًا قابلًا للقراءة). يلزم ملف PDF مُصدَّر من النظام مباشرةً.`, "err");
+  else if (!total) setMsg("لم يتم العثور على صفوف تحتوي تاريخًا في الملف. تأكد أن الملف هو كشف الطلاب المفصولين.", "err");
+  else setMsg(`✔ تمت قراءة ${total} صفًا، وأُضيف ${added} سجلًا جديدًا${total-added ? ` (تم تجاهل ${total-added} مكرر)` : ""}.`, "ok");
+}
+function setMsg(t, cls){ const m = $("msg"); m.textContent = t; m.className = "msg " + (cls||""); }
+
+/* ---------- filters ---------- */
+function refreshOptions(){
+  const fill = (sel, vals, sorter) => {
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">الكل</option>' + [...new Set(vals)].filter(Boolean).sort(sorter).map(v=>`<option>${esc(v)}</option>`).join("");
+    sel.value = [...sel.options].some(o=>o.value===cur) ? cur : "";
+  };
+  const num = (a,b)=> (parseFloat(a)||0)-(parseFloat(b)||0) || String(a).localeCompare(b);
+  fill($("fGrade"), data.map(r=>r.grade), num);
+  fill($("fClass"), data.filter(r => !$("fGrade").value || r.grade === $("fGrade").value).map(r=>r.cls), num);
+  fill($("fDay"), data.map(r=>r.day), (a,b)=> DAYS.indexOf(a)-DAYS.indexOf(b));
+}
+function filtered(){
+  const q = normAr($("q").value), g = $("fGrade").value, c = $("fClass").value, d = $("fDay").value;
+  const exact = $("fDate").value, from = $("fFrom").value, to = $("fTo").value;
+  return data.filter(r =>
+    (!q || normAr(r.name).includes(q)) &&
+    (!g || r.grade === g) && (!c || r.cls === c) && (!d || r.day === d) &&
+    (!exact || r.date === exact) && (!from || r.date >= from) && (!to || r.date <= to));
+}
+function filterSummary(){
+  const parts = [];
+  if ($("q").value.trim()) parts.push(`الاسم: ${$("q").value.trim()}`);
+  if ($("fGrade").value) parts.push(`الصف: ${$("fGrade").value}`);
+  if ($("fClass").value) parts.push(`الفصل: ${$("fClass").value}`);
+  if ($("fDay").value) parts.push(`اليوم: ${$("fDay").value}`);
+  if ($("fDate").value) parts.push(`التاريخ: ${$("fDate").value}`);
+  if ($("fFrom").value || $("fTo").value) parts.push(`الفترة: من ${$("fFrom").value || "البداية"} إلى ${$("fTo").value || "الآن"}`);
+  return parts.join(" — ") || "جميع البيانات";
+}
+
+/* ---------- views ---------- */
+function studentSummary(rows){
+  const m = new Map();
+  for (const r of rows){
+    const k = normAr(r.name)+"|"+r.grade+"|"+r.cls;
+    if (!m.has(k)) m.set(k, {name:r.name, grade:r.grade, cls:r.cls, count:0, dates:[]});
+    const s = m.get(k); s.count++; s.dates.push(r.date);
+  }
+  return [...m.values()].map(s => ({...s, dates:s.dates.sort(), last:s.dates[s.dates.length-1]}));
+}
+const COLS = {
+  list: [["grade","الصف"],["cls","الفصل"],["name","اسم الطالب"],["day","يوم الفصل"],["date","تاريخ الفصل"]],
+  students: [["grade","الصف"],["cls","الفصل"],["name","اسم الطالب"],["count","عدد مرات الفصل"],["last","آخر تاريخ"],["dates","التواريخ"]]
+};
+function sortRows(rows){
+  const {key, dir} = sort;
+  return rows.sort((a,b)=>{
+    let x = a[key], y = b[key];
+    if (key==="day"){ x = DAYS.indexOf(x); y = DAYS.indexOf(y); }
+    if (["grade","cls","count"].includes(key)){ x = parseFloat(x)||0; y = parseFloat(y)||0; }
+    if (Array.isArray(x)){ x = x.length; y = y.length; }
+    const r = x < y ? -1 : x > y ? 1 : 0;
+    return r * dir || String(b.date||b.last).localeCompare(a.date||a.last);
+  });
+}
+function currentRows(){
+  const rows = filtered();
+  return view === "list" ? sortRows(rows) : sortRows(studentSummary(rows));
+}
+function render(){
+  const rows = filtered();
+  const studs = studentSummary(rows);
+  $("sRows").textContent = rows.length;
+  $("sStudents").textContent = studs.length;
+  $("sDays").textContent = new Set(rows.map(r=>r.date)).size;
+  const top = [...studs].sort((a,b)=>b.count-a.count)[0];
+  $("sTop").textContent = top ? top.count + " مرات" : "—";
+  $("sTopLbl").textContent = top ? "الأكثر تكرارًا: " + top.name : "الأكثر تكرارًا";
+
+  const cols = COLS[view];
+  const out = currentRows();
+  if (!sort.key || !cols.some(c=>c[0]===sort.key)) sort = {key: view==="list"?"date":"count", dir:-1};
+  const head = "<thead><tr><th style='cursor:default'>#</th>" + cols.map(([k,l]) =>
+    `<th data-k="${k}">${l} <span class="arr">${sort.key===k ? (sort.dir>0?"▲":"▼") : ""}</span></th>`).join("") +
+    (view==="list" ? "<th style='cursor:default'></th>" : "") + "</tr></thead>";
+  const body = out.map((r,i) => "<tr><td class='muted'>"+(i+1)+"</td>" + cols.map(([k]) => {
+    if (k==="name") return `<td class="name">${esc(r.name)}</td>`;
+    if (k==="count") return `<td><span class="badge ${r.count>=3?"hot":""}">${r.count}</span></td>`;
+    if (k==="dates") return `<td style="white-space:normal">${r.dates.map(esc).join("، ")}</td>`;
+    return `<td>${esc(r[k])}</td>`;
+  }).join("") + (view==="list" ? `<td><button class="del" title="حذف السجل" data-id="${esc(r.id)}">✕</button></td>` : "") + "</tr>").join("");
+  $("tbl").innerHTML = out.length ? head + "<tbody>" + body + "</tbody>" : "";
+  $("empty").style.display = out.length ? "none" : "block";
+  $("empty").textContent = data.length ? "لا توجد نتائج مطابقة للفلاتر الحالية." : "لا توجد بيانات بعد — ارفع ملف PDF أو حمّل البيانات التجريبية.";
+}
+
+/* ---------- print / pdf sheet ---------- */
+function buildSheet(){
+  const cols = COLS[view], rows = currentRows();
+  const title = view==="list" ? "كشف الطلاب المفصولين" : "ملخص الطلاب المفصولين حسب الطالب";
+  const html = `<div class="sheet">
+    <h2>${title}</h2>
+    <div class="sub">${esc(filterSummary())} — عدد السجلات: ${rows.length}</div>
+    <table><thead><tr><th>م</th>${cols.map(c=>`<th>${c[1]}</th>`).join("")}</tr></thead>
+    <tbody>${rows.map((r,i)=>`<tr><td>${i+1}</td>${cols.map(([k])=>{
+      const v = k==="dates" ? r.dates.join("، ") : r[k];
+      return `<td class="${k==="name"?"n":k==="dates"?"d":""}">${esc(v)}</td>`;}).join("")}</tr>`).join("")}</tbody></table>
+    <div class="foot">تاريخ الإصدار: ${isoLocal(new Date())}</div>
+  </div>`;
+  $("sheet").innerHTML = html;
+  return rows.length;
+}
+// Render the current sheet to a canvas (used for image export and WhatsApp sharing)
+async function sheetCanvas(){
+  const el = $("sheet").firstElementChild.cloneNode(true);
+  const tw = document.createTreeWalker(el, NodeFilter.SHOW_TEXT); let tn;
+  while ((tn = tw.nextNode())) if (tn.nodeValue.trim() && !tn.parentElement.closest("td.d")) tn.nodeValue = tn.nodeValue.replace(/ /g, " ");
+  const holder = document.createElement("div");
+  holder.style.cssText = "position:fixed;left:-10000px;top:0;width:780px;background:#fff";
+  holder.appendChild(el); document.body.appendChild(holder);
+  try{
+    await document.fonts.ready;
+    return await html2pdf().set({html2canvas:{scale:2, backgroundColor:"#ffffff"}}).from(el).toCanvas().get("canvas");
+  } finally { holder.remove(); }
+}
+const fileStamp = () => `الطلاب_المفصولين_${isoLocal(new Date())}`;
+async function busy(btn, label, fn){
+  const old = btn.textContent; btn.disabled = true; btn.textContent = label;
+  try{ await fn(); } catch(e){ if (e && e.name !== "AbortError"){ console.error(e); setMsg("حدث خطأ أثناء التنفيذ.", "err"); } }
+  finally{ btn.disabled = false; btn.textContent = old; }
+}
+async function exportImage(){
+  if (!buildSheet()){ setMsg("لا توجد بيانات لتصديرها.", "err"); return; }
+  await busy($("imgBtn"), "⏳ جارٍ التصدير...", async () => {
+    const c = await sheetCanvas();
+    const a = document.createElement("a");
+    a.href = c.toDataURL("image/png"); a.download = fileStamp() + ".png";
+    document.body.appendChild(a); a.click(); a.remove();
+  });
+}
+function shareText(){
+  const rows = currentRows(), max = 60;
+  const lines = [view==="list" ? "*كشف الطلاب المفصولين*" : "*ملخص الطلاب المفصولين*", filterSummary(), `عدد السجلات: ${rows.length}`, ""];
+  rows.slice(0, max).forEach((r,i) => lines.push(view==="list"
+    ? `${i+1}. ${r.name} — ${r.grade}/${r.cls} — ${r.day} ${r.date}`
+    : `${i+1}. ${r.name} — ${r.grade}/${r.cls} — ${r.count} مرات (آخرها ${r.last})`));
+  if (rows.length > max) lines.push(`... و${rows.length - max} سجلًا آخر`);
+  return lines.join("\n");
+}
+async function shareWhatsApp(){
+  if (!buildSheet()){ setMsg("لا توجد بيانات للمشاركة.", "err"); return; }
+  await busy($("waBtn"), "⏳ جارٍ التجهيز...", async () => {
+    // On phones: share the image directly (choose WhatsApp from the share sheet)
+    if (navigator.canShare){
+      const c = await sheetCanvas();
+      const blob = await new Promise(r => c.toBlob(r, "image/png"));
+      const file = new File([blob], fileStamp() + ".png", {type:"image/png"});
+      if (navigator.canShare({files:[file]})){
+        await navigator.share({files:[file], title:"كشف الطلاب المفصولين", text:filterSummary()});
+        return;
+      }
+    }
+    // On computers: open WhatsApp with the list as text
+    window.open("https://wa.me/?text=" + encodeURIComponent(shareText()), "_blank");
+  });
+}
+
+async function exportPdf(){
+  if (!buildSheet()){ setMsg("لا توجد بيانات لتصديرها.", "err"); return; }
+  const el = $("sheet").firstElementChild.cloneNode(true);
+  // html2canvas drops spaces between Arabic words; non-breaking spaces keep phrases intact
+  const tw = document.createTreeWalker(el, NodeFilter.SHOW_TEXT); let tn;
+  while ((tn = tw.nextNode())) if (tn.nodeValue.trim() && !tn.parentElement.closest("td.d")) tn.nodeValue = tn.nodeValue.replace(/ /g, " ");
+  const holder = document.createElement("div");
+  holder.style.cssText = "position:fixed;left:-10000px;top:0;width:780px;background:#fff";
+  holder.appendChild(el); document.body.appendChild(holder);
+  const btn = $("pdfBtn"); btn.disabled = true; btn.textContent = "⏳ جارٍ التصدير...";
+  try{
+    await document.fonts.ready;
+    await html2pdf().set({
+      margin:[10,8,10,8],
+      filename:`الطلاب_المفصولين_${isoLocal(new Date())}.pdf`,
+      image:{type:"jpeg", quality:0.95},
+      html2canvas:{scale:2, useCORS:true, backgroundColor:"#ffffff"},
+      jsPDF:{unit:"mm", format:"a4", orientation:"portrait"},
+      pagebreak:{mode:["css","legacy"], avoid:"tr"}
+    }).from(el).save();
+  } finally {
+    holder.remove(); btn.disabled = false; btn.textContent = "⬇ تصدير PDF";
+  }
+}
+
+/* ---------- sample ---------- */
+const SAMPLE = [
+ ["10","1","طالب تجريبي أ","2026-11-03"],["10","1","طالب تجريبي أ","2026-11-04"],
+ ["10","2","طالب تجريبي ب","2026-10-21"],["10","2","طالب تجريبي ج","2026-10-26"],
+ ["10","2","طالب تجريبي ج","2026-10-27"],["10","2","طالب تجريبي ج","2026-10-28"],
+ ["10","2","طالب تجريبي د","2026-11-05"],["10","2","طالب تجريبي هـ","2026-11-04"],
+ ["10","3","طالب تجريبي و","2026-09-21"],["10","3","طالب تجريبي ز","2026-09-21"],
+ ["10","4","طالب تجريبي ح","2026-09-24"],["10","4","طالب تجريبي ط","2026-11-08"],
+ ["10","4","طالب تجريبي ي","2026-10-04"],["10","4","طالب تجريبي ك","2026-11-05"],
+ ["10","4","طالب تجريبي ك","2026-11-08"],["10","4","طالب تجريبي ك","2026-11-09"],
+ ["11","1","طالب تجريبي ل","2026-10-04"],["11","1","طالب تجريبي ل","2026-11-04"],
+ ["11","2","طالب تجريبي م","2026-11-05"],["11","2","طالب تجريبي م","2026-11-09"]
+];
+
+/* ---------- events ---------- */
+const drop = $("drop");
+drop.onclick = () => $("file").click();
+$("file").onchange = e => { handleFiles(e.target.files); e.target.value = ""; };
+["dragenter","dragover"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add("over"); }));
+["dragleave","drop"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove("over"); }));
+drop.addEventListener("drop", e => handleFiles(e.dataTransfer.files));
+
+$("sampleBtn").onclick = () => {
+  const seen = new Set(data.map(keyOf)); let n = 0;
+  for (const [grade,cls,name,date] of SAMPLE){ const r = {grade,cls,name,date,day:dayOf(date)}; if (seen.has(keyOf(r))) continue; data.push({id:String(Math.random()),...r}); n++; }
+  save(); refreshOptions(); render(); setMsg(`تمت إضافة ${n} سجلًا تجريبيًا (أسماء وهمية للتجربة).`, "ok");
+};
+$("clearBtn").onclick = () => { if (!data.length || !confirm("هل تريد مسح جميع البيانات المحمّلة؟")) return; data = []; save(); refreshOptions(); render(); setMsg("تم مسح البيانات."); };
+
+["q","fClass","fDay","fDate","fFrom","fTo"].forEach(id => $(id).addEventListener("input", () => { clearChips(); render(); }));
+$("fGrade").addEventListener("input", () => { refreshOptions(); render(); });
+$("fDate").addEventListener("input", () => { if ($("fDate").value){ $("fFrom").value = ""; $("fTo").value = ""; } render(); });
+["fFrom","fTo"].forEach(id => $(id).addEventListener("input", () => { if ($(id).value) $("fDate").value = ""; render(); }));
+$("resetBtn").onclick = () => { ["q","fGrade","fClass","fDay","fDate","fFrom","fTo"].forEach(id => $(id).value = ""); clearChips(); refreshOptions(); render(); };
+
+function clearChips(){ document.querySelectorAll(".chip").forEach(c=>c.classList.remove("on")); }
+document.querySelectorAll(".chip").forEach(ch => ch.onclick = () => {
+  const now = new Date(); let from = "", to = "";
+  const p = ch.dataset.p;
+  if (p==="today"){ from = to = isoLocal(now); }
+  if (p==="week"){ const f = new Date(now); f.setDate(f.getDate()-6); from = isoLocal(f); to = isoLocal(now); }
+  if (p==="month"){ from = isoLocal(new Date(now.getFullYear(), now.getMonth(), 1)); to = isoLocal(new Date(now.getFullYear(), now.getMonth()+1, 0)); }
+  if (p==="lastmonth"){ from = isoLocal(new Date(now.getFullYear(), now.getMonth()-1, 1)); to = isoLocal(new Date(now.getFullYear(), now.getMonth(), 0)); }
+  $("fDate").value = ""; $("fFrom").value = from; $("fTo").value = to;
+  clearChips(); ch.classList.add("on"); render();
+});
+
+document.querySelectorAll(".tab").forEach(t => t.onclick = () => {
+  document.querySelectorAll(".tab").forEach(x=>x.classList.remove("on")); t.classList.add("on");
+  view = t.dataset.v; sort = {key: view==="list"?"date":"count", dir:-1}; render();
+});
+$("tbl").addEventListener("click", e => {
+  const th = e.target.closest("th[data-k]");
+  if (th){ const k = th.dataset.k; sort = {key:k, dir: sort.key===k ? -sort.dir : 1}; render(); return; }
+  const del = e.target.closest(".del");
+  if (del){ data = data.filter(r => r.id !== del.dataset.id); save(); refreshOptions(); render(); }
+});
+$("pdfBtn").onclick = exportPdf;
+$("imgBtn").onclick = exportImage;
+$("waBtn").onclick = shareWhatsApp;
+$("printBtn").onclick = () => { if (!buildSheet()){ setMsg("لا توجد بيانات للطباعة.", "err"); return; } window.print(); };
+
+$("themeBtn").onclick = () => {
+  const r = document.documentElement;
+  const dark = r.dataset.theme ? r.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+  r.dataset.theme = dark ? "light" : "dark";
+  try{ localStorage.setItem("theme", r.dataset.theme); }catch(e){}
+};
+try{ const t = localStorage.getItem("theme"); if (t) document.documentElement.dataset.theme = t; }catch(e){}
+
+load(); refreshOptions(); render();
+</script>
+</body>
+</html>
